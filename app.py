@@ -1,6 +1,8 @@
 import streamlit as st
 import pandas as pd
 
+from streamlit_autorefresh import st_autorefresh
+
 from database import (
     initialize_database,
     get_logs,
