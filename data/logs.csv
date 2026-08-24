@@ -1,0 +1,22 @@
+timestamp,event_type,severity,source,status,message
+2026-08-24 10:00:01,LOGIN,INFO,server-1,200,Login successful
+2026-08-24 10:00:05,LOGIN,INFO,server-1,200,Login successful
+2026-08-24 10:00:10,GET_USERS,INFO,server-1,200,Users fetched successfully
+2026-08-24 10:00:15,GET_USERS,INFO,server-1,200,Users fetched successfully
+2026-08-24 10:00:20,LOGOUT,INFO,server-1,200,Logout successful
+2026-08-24 10:00:25,LOGIN,INFO,server-2,200,Login successful
+2026-08-24 10:00:30,GET_PRODUCTS,INFO,server-2,200,Products fetched successfully
+2026-08-24 10:00:35,GET_PRODUCTS,INFO,server-2,200,Products fetched successfully
+2026-08-24 10:00:40,SEARCH,INFO,server-1,200,Search completed
+2026-08-24 10:00:45,SEARCH,INFO,server-1,200,Search completed
+2026-08-24 10:00:50,PAYMENT,INFO,server-2,200,Payment successful
+2026-08-24 10:00:55,GET_ORDERS,INFO,server-1,200,Orders fetched successfully
+2026-08-24 10:01:00,GET_ORDERS,INFO,server-1,200,Orders fetched successfully
+2026-08-24 10:01:05,LOGIN,INFO,server-2,200,Login successful
+2026-08-24 10:01:10,SEARCH,INFO,server-2,200,Search completed
+2026-08-24 10:01:15,PAYMENT,ERROR,server-3,500,Internal server error
+2026-08-24 10:01:20,LOGIN,WARNING,server-3,403,Access denied
+2026-08-24 10:01:25,PAYMENT,ERROR,server-3,500,Internal server error
+2026-08-24 10:01:30,GET_USERS,INFO,server-1,200,Users fetched successfully
+2026-08-24 10:01:35,GET_PRODUCTS,INFO,server-2,200,Products fetched successfully
+2026-08-24 10:01:40,PAYMENT,ERROR,server-3,500,Internal server error
