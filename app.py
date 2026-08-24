@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
 
-from streamlit_autorefresh import st_autorefresh
-
 from database import (
     initialize_database,
     get_logs,
@@ -20,7 +18,7 @@ from realtime_generator import generate_log
 
 
 # =====================================================
-# PAGE CONFIG
+# PAGE CONFIGURATION
 # =====================================================
 
 st.set_page_config(
@@ -31,7 +29,7 @@ st.set_page_config(
 
 
 # =====================================================
-# DATABASE
+# INITIALIZE DATABASE
 # =====================================================
 
 initialize_database()
@@ -61,7 +59,7 @@ page = st.sidebar.radio(
 
 
 # =====================================================
-# LOAD DATABASE LOGS
+# LOAD LOGS
 # =====================================================
 
 df = get_logs()
@@ -90,7 +88,7 @@ if page == "🏠 Dashboard":
     normal_count = total_logs - anomaly_count
 
     anomaly_rate = (
-        anomaly_count / total_logs * 100
+        (anomaly_count / total_logs) * 100
         if total_logs > 0
         else 0
     )
@@ -120,7 +118,7 @@ if page == "🏠 Dashboard":
     st.divider()
 
     # -------------------------------------------------
-    # RUN DETECTION
+    # RUN ANOMALY DETECTION
     # -------------------------------------------------
 
     st.subheader("🔎 Anomaly Detection")
@@ -228,7 +226,7 @@ if page == "🏠 Dashboard":
         )
 
     # -------------------------------------------------
-    # SOURCE CHART
+    # LOGS BY SOURCE
     # -------------------------------------------------
 
     if not df.empty:
@@ -590,165 +588,137 @@ elif page == "⚡ Real-Time Monitor":
     st.title("⚡ Real-Time Log Monitor")
 
     st.caption(
-        "Continuously monitor incoming application logs "
-        "and detect anomalies in real time."
+        "Generate incoming application logs and "
+        "detect anomalies in real time."
     )
 
     # -------------------------------------------------
     # SESSION STATE
     # -------------------------------------------------
 
-    if "monitoring" not in st.session_state:
-        st.session_state.monitoring = False
-
     if "realtime_count" not in st.session_state:
+
         st.session_state.realtime_count = 0
 
     if "realtime_anomalies" not in st.session_state:
+
         st.session_state.realtime_anomalies = 0
 
     if "latest_realtime_log" not in st.session_state:
+
         st.session_state.latest_realtime_log = None
 
     if "latest_realtime_detection" not in st.session_state:
+
         st.session_state.latest_realtime_detection = None
 
     if "latest_realtime_id" not in st.session_state:
+
         st.session_state.latest_realtime_id = None
 
     # -------------------------------------------------
-    # CONTROLS
+    # RECEIVE NEW LOG
     # -------------------------------------------------
 
-    col1, col2 = st.columns(2)
+    st.subheader(
+        "📡 Incoming Log Simulation"
+    )
 
-    with col1:
+    if st.button(
+        "⚡ Receive New Log",
+        type="primary",
+        use_container_width=True
+    ):
 
-        if st.button(
-            "▶️ Start Monitoring",
-            type="primary",
-            use_container_width=True
-        ):
+        try:
 
-            st.session_state.monitoring = True
+            # Generate log
+            new_log = generate_log()
 
-            st.rerun()
+            # Convert to DataFrame
+            new_df = pd.DataFrame([
+                new_log
+            ])
 
-    with col2:
+            # Store in SQLite
+            insert_logs(
+                new_df,
+                log_type="realtime"
+            )
 
-        if st.button(
-            "⏹️ Stop Monitoring",
-            use_container_width=True
-        ):
+            # Get latest database record
+            logs = get_logs()
 
-            st.session_state.monitoring = False
+            latest = logs.head(1)
 
-            st.rerun()
+            log_id = int(
+                latest.iloc[0]["id"]
+            )
 
-    # -------------------------------------------------
-    # STATUS
-    # -------------------------------------------------
+            # Detect anomaly
+            result = detect_anomalies(
+                latest
+            )
 
-    if st.session_state.monitoring:
+            detection = result.iloc[0]
 
-        st.success(
-            "🟢 Monitoring is ACTIVE"
-        )
+            # Save detection result
+            update_anomaly(
+                log_id,
+                detection["is_anomaly"],
+                detection["score"],
+                detection["reason"]
+            )
 
-    else:
-
-        st.info(
-            "⏸️ Monitoring is stopped"
-        )
-
-    # -------------------------------------------------
-    # AUTO REFRESH + NEW LOG
-    # -------------------------------------------------
-
-    if st.session_state.monitoring:
-
-        st_autorefresh(
-            interval=2000,
-            key="realtime_monitor"
-        )
-
-        # Generate incoming log
-        new_log = generate_log()
-
-        # Convert to DataFrame
-        new_df = pd.DataFrame([
-            new_log
-        ])
-
-        # Store in SQLite
-        insert_logs(
-            new_df,
-            log_type="realtime"
-        )
-
-        # Get latest record
-        logs = get_logs()
-
-        latest = logs.head(1)
-
-        log_id = int(
-            latest.iloc[0]["id"]
-        )
-
-        # Detect anomaly
-        result = detect_anomalies(
-            latest
-        )
-
-        detection = result.iloc[0]
-
-        # Save detection result
-        update_anomaly(
-            log_id,
-            detection["is_anomaly"],
-            detection["score"],
-            detection["reason"]
-        )
-
-        # Activity
-        add_activity(
-            "REALTIME_LOG_RECEIVED",
-            (
-                f"Real-time "
-                f"{new_log['event_type']} log received."
-            ),
-            log_id
-        )
-
-        if detection["is_anomaly"]:
-
+            # Activity log
             add_activity(
-                "REALTIME_ANOMALY_DETECTED",
+                "REALTIME_LOG_RECEIVED",
                 (
-                    f"Real-time anomaly detected. "
-                    f"Score: {detection['score']}. "
-                    f"Reason: {detection['reason']}"
+                    f"Real-time "
+                    f"{new_log['event_type']} log received."
                 ),
                 log_id
             )
 
-        # Session state
-        st.session_state.realtime_count += 1
+            if detection["is_anomaly"]:
 
-        if detection["is_anomaly"]:
+                add_activity(
+                    "REALTIME_ANOMALY_DETECTED",
+                    (
+                        f"Real-time anomaly detected. "
+                        f"Score: {detection['score']}. "
+                        f"Reason: {detection['reason']}"
+                    ),
+                    log_id
+                )
 
-            st.session_state.realtime_anomalies += 1
+            # Session state
+            st.session_state.realtime_count += 1
 
-        st.session_state.latest_realtime_log = new_log
+            if detection["is_anomaly"]:
 
-        st.session_state.latest_realtime_detection = (
-            detection.to_dict()
-        )
+                st.session_state.realtime_anomalies += 1
 
-        st.session_state.latest_realtime_id = log_id
+            st.session_state.latest_realtime_log = new_log
+
+            st.session_state.latest_realtime_detection = (
+                detection.to_dict()
+            )
+
+            st.session_state.latest_realtime_id = log_id
+
+            st.success(
+                "New real-time log received and analyzed."
+            )
+
+        except Exception as e:
+
+            st.error(
+                f"Real-time processing failed: {e}"
+            )
 
     # -------------------------------------------------
-    # LIVE METRICS
+    # METRICS
     # -------------------------------------------------
 
     st.divider()
@@ -823,7 +793,7 @@ elif page == "⚡ Real-Time Monitor":
         )
 
         col4.metric(
-            "Score",
+            "Anomaly Score",
             detection["score"]
         )
 
@@ -845,7 +815,7 @@ elif page == "⚡ Real-Time Monitor":
         st.divider()
 
         # -------------------------------------------------
-        # ANOMALY RESULT
+        # DETECTION
         # -------------------------------------------------
 
         if detection["is_anomaly"]:
@@ -954,6 +924,13 @@ elif page == "⚡ Real-Time Monitor":
             st.write(
                 "No anomaly was detected in this log."
             )
+
+    else:
+
+        st.info(
+            "No real-time logs received yet. "
+            "Click 'Receive New Log' to start."
+        )
 
     # -------------------------------------------------
     # RECENT REAL-TIME LOGS
